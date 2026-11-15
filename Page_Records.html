@@ -1,7 +1,8 @@
+<div id="sec-records-wrapper">
 <!-- 引入 Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { padding: 20px; background-color: #f8f9fa; }
+        #sec-records-wrapper { padding: 10px; }
         .status-badge {
             display: inline-block;
             padding: 3px 8px;
@@ -383,43 +384,38 @@
             };
 
             if (editRowIndex) {
-                google.script.run
-                    .withSuccessHandler(function(result) {
-                        // 成功時不彈出視窗，直接在背景更新並重新載入列表
+                callGasPost('updateRecord', { rowIndex: parseInt(editRowIndex), data: data }).then(res => {
+                    if (res && res.status === 'success') {
                         cancelEdit();
                         loadData();
-                    })
-                    .withFailureHandler(function(error) {
-                        alert('更新失敗：' + error);
+                    } else {
+                        alert('更新失敗：' + (res ? res.message : '未知錯誤'));
                         submitBtn.disabled = false;
                         submitBtn.innerText = '確認修改';
-                    })
-                    .updateRecord(parseInt(editRowIndex), data);
+                    }
+                });
             } else {
-                google.script.run
-                    .withSuccessHandler(function(result) {
-                        // 成功時不彈出視窗，直接在背景重設表單並重新載入列表
+                callGasPost('addRecord', data).then(res => {
+                    if (res && res.status === 'success') {
                         document.getElementById('recordForm').reset();
                         document.getElementById('recordDate').value = getLocalDateString();
                         document.getElementById('recordStatus').value = '已完成';
-
                         submitBtn.disabled = false;
                         submitBtn.innerText = '送出並同步至試算表';
                         loadData();
-                    })
-                    .withFailureHandler(function(error) {
-                        alert('發生錯誤：' + error);
+                    } else {
+                        alert('發生錯誤：' + (res ? res.message : '未知錯誤'));
                         submitBtn.disabled = false;
                         submitBtn.innerText = '送出並同步至試算表';
-                    })
-                    .addRecord(data);
+                    }
+                });
             }
         });
 
         function loadData() {
-            google.script.run
-                .withSuccessHandler(function(data) {
-                    allRecords = data || [];
+            callGasGet('getRecords').then(function(res) {
+                    const data = Array.isArray(res) ? res : (res && res.data ? res.data : []);
+                    allRecords = data;
                     
                     // 自動收集並更新學生自動完成清單 (Datalist)
                     updateStudentDatalist(allRecords);
@@ -508,10 +504,7 @@
                     
                     filterTables();
                 })
-                .withFailureHandler(function(error) {
-                    console.error('載入失敗:', error);
-                })
-                .getRecords();
+                });
         }
 
         // 萃取現有不重複的學生姓名，更新至 datalist
@@ -617,15 +610,14 @@
 
         function deleteRecord(rowIndex) {
             if (confirm('確定要刪除這筆紀錄嗎？此動作無法復原。')) {
-                google.script.run
-                    .withSuccessHandler(function(result) {
+                callGasPost('deleteRecord', { rowIndex: rowIndex }).then(res => {
+                    if (res && res.status === 'success') {
                         alert('刪除成功！');
                         loadData();
-                    })
-                    .withFailureHandler(function(error) {
-                        alert('刪除失敗：' + error);
-                    })
-                    .deleteRecord(rowIndex);
+                    } else {
+                        alert('刪除失敗：' + (res ? res.message : '未知錯誤'));
+                    }
+                });
             }
         }
 
@@ -760,3 +752,5 @@
             });
         }
     </script>
+
+</div>
