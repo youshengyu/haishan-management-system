@@ -6,16 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>海山教室全方位管理系統</title>
   
-  <!-- 引入 Font Awesome 圖示 -->
+  <!-- 引入共用樣式與套件 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- 引入 Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { corePlugins: { preflight: false } }
   </script>
-  <!-- 引入您的 api.js -->
   <script src="api.js"></script>
 
   <style>
@@ -31,8 +28,7 @@
       color: #f8fafc; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
       z-index: 9999; height: 100%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden;
     }
-    .app-sidebar.collapsed { width: 72px; min-width: 72px; }
-    .sidebar-header { padding: 20px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); position: relative; white-space: nowrap; }
+    .sidebar-header { padding: 20px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); white-space: nowrap; }
     .logo-icon { width: 36px; height: 36px; background: #4f46e5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; flex-shrink: 0; }
     .brand-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
     .brand-sub { font-size: 11px; color: #94a3b8; }
@@ -61,58 +57,67 @@
       </div>
 
       <nav class="nav-menu">
-        <div class="nav-label">系統功能選單</div>
-        <button class="nav-item active" onclick="switchTab('records', this)"><i class="fa-solid fa-clipboard-list"></i><span>日常事蹟紀錄表</span></button>
-        <button class="nav-item" onclick="switchTab('textbooks', this)"><i class="fa-solid fa-book-open"></i><span>教科書版本查詢</span></button>
-        <button class="nav-item" onclick="switchTab('exams', this)"><i class="fa-solid fa-file-pdf"></i><span>歷屆段考資源網</span></button>
-        <button class="nav-item" onclick="switchTab('links', this)"><i class="fa-solid fa-globe"></i><span>各校官方網站</span></button>
-        <button class="nav-item" onclick="switchTab('templates', this)"><i class="fa-solid fa-comments"></i><span>常用聯絡事項範本</span></button>
-        <button class="nav-item" onclick="switchTab('schedule', this)"><i class="fa-solid fa-calendar-days"></i><span>學校段考日與大考查詢</span></button>
+        <div class="nav-label text-xs text-slate-500 px-2 mb-1">系統功能選單</div>
+        <button class="nav-item active" onclick="switchTab('Records', this)"><i class="fa-solid fa-clipboard-list"></i><span>日常事蹟紀錄表</span></button>
+        <button class="nav-item" onclick="switchTab('Textbooks', this)"><i class="fa-solid fa-book-open"></i><span>教科書版本查詢</span></button>
+        <button class="nav-item" onclick="switchTab('Exams', this)"><i class="fa-solid fa-file-pdf"></i><span>歷屆段考資源網</span></button>
+        <button class="nav-item" onclick="switchTab('Links', this)"><i class="fa-solid fa-globe"></i><span>各校官方網站</span></button>
+        <button class="nav-item" onclick="switchTab('Templates', this)"><i class="fa-solid fa-comments"></i><span>常用聯絡事項範本</span></button>
+        <button class="nav-item" onclick="switchTab('Schedule', this)"><i class="fa-solid fa-calendar-days"></i><span>學校段考日與大考查詢</span></button>
       </nav>
       <div class="sidebar-footer p-3 text-xs text-slate-500">補習班專屬系統 v2.0</div>
     </aside>
 
     <main class="app-main">
-      <!-- 1. 日常事蹟紀錄表 -->
-      <div id="sec-records" class="system-section active p-4">
-        <!-- 這裡貼上原本 Page_Records.html 內的 HTML 內容 (不含頭尾 html/head) -->
-      </div>
-
-      <!-- 2. 教科書版本查詢 -->
-      <div id="sec-textbooks" class="system-section p-4">
-        <!-- 這裡貼上原本 Page_Textbooks.html 內的 HTML 內容 -->
-      </div>
-
-      <!-- 3. 歷屆段考資源網 -->
-      <div id="sec-exams" class="system-section">
-        <!-- 這裡貼上原本 Page_Exams.html 內的 HTML 內容 -->
-      </div>
-
-      <!-- 4. 各校官方網站 -->
-      <div id="sec-links" class="system-section p-4">
-        <!-- 這裡貼上原本 Page_Links.html 內的 HTML 內容 -->
-      </div>
-
-      <!-- 5. 常用聯絡事項範本 -->
-      <div id="sec-templates" class="system-section p-4">
-        <!-- 這裡貼上原本 Page_Templates.html 內的 HTML 內容 -->
-      </div>
-
-      <!-- 6. 學校段考日與大考查詢 -->
-      <div id="sec-schedule" class="system-section p-4">
-        <!-- 這裡貼上原本 Page_Schedule.html 內的 HTML 內容 -->
+      <div id="content-container" class="w-full min-h-full p-4">
+        <!-- 動態載入的分頁內容會放這裡 -->
+        <div class="text-center py-12 text-slate-500">載入中...</div>
       </div>
     </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    function switchTab(sysKey, btn) {
+    // 預設先載入日常事蹟紀錄表
+    window.addEventListener('DOMContentLoaded', () => {
+      loadPage('Records');
+    });
+
+    async function switchTab(tabName, btn) {
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
       btn.classList.add('active');
-      document.querySelectorAll('.system-section').forEach(sec => sec.classList.remove('active'));
-      document.getElementById('sec-' + sysKey).classList.add('active');
-      document.querySelector('.app-main').scrollTop = 0;
+      await loadPage(tabName);
+    }
+
+    async function loadPage(tabName) {
+      const container = document.getElementById('content-container');
+      container.innerHTML = '<div class="text-center py-12 text-slate-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i>載入分頁中...</div>';
+      
+      try {
+        let fileName = `Page_${tabName}.html`;
+        let response = await fetch(fileName);
+        if (!response.ok) throw new Error('找不到分頁檔案');
+        let htmlContent = await response.text();
+        
+        container.innerHTML = htmlContent;
+        
+        // 如果 HTML 檔裡面包含 <script> 標籤，手動讓它重新執行以確保功能正常
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(script => {
+          const newScript = document.createElement('script');
+          if (script.src) {
+            newScript.src = script.src;
+          } else {
+            newScript.textContent = script.textContent;
+          }
+          document.body.appendChild(newScript);
+          script.remove();
+        });
+
+        document.querySelector('.app-main').scrollTop = 0;
+      } catch (err) {
+        container.innerHTML = `<div class="p-6 text-red-500 text-center">無法載入 ${tabName} 分頁：${err.message}</div>`;
+      }
     }
   </script>
 </body>
