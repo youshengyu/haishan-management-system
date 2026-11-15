@@ -492,54 +492,27 @@
                 globalLoadingOverlay.classList.remove('opacity-0', 'pointer-events-none');
             }
 
-            // 檢查是否在 Google Apps Script 環境中運行
-            if (typeof google === 'undefined' || !google.script || !google.script.run) {
-                console.warn("目前不在 Google Apps Script 執行環境中。");
+            const actionName = isForceRefresh ? 'getExamsData&refresh=true' : 'getExamsData';
+            callGasGet(actionName).then(function(result) {
                 if (globalLoadingOverlay) {
                     globalLoadingOverlay.classList.add('opacity-0', 'pointer-events-none');
                     setTimeout(() => { globalLoadingOverlay.style.display = 'none'; }, 500);
                 }
+                if (result && result.status === 'success') {
+                    exams = result.data || [];
+                    updateGradeAndSchoolOptions();
+                    renderExams();
+                    if (isForceRefresh) {
+                        alert(`成功同步！目前共載入 ${exams.length} 份考卷。`);
+                    }
+                } else {
+                    alert(`從試算表載入失敗：${result ? result.message : '未知錯誤'}`);
+                }
                 if (isForceRefresh) {
-                    alert("提示：此功能需在正式部署的 Google Apps Script 網頁應用程式中才能直接連線雲端！");
                     refreshDataBtn.disabled = false;
                     refreshDataBtn.innerHTML = `<i class="fa-solid fa-rotate text-xs"></i><span>重新同步雲端資料</span>`;
                 }
-                return;
-            }
-
-            google.script.run
-                .withSuccessHandler(function(result) {
-                    if (globalLoadingOverlay) {
-                        globalLoadingOverlay.classList.add('opacity-0', 'pointer-events-none');
-                        setTimeout(() => { globalLoadingOverlay.style.display = 'none'; }, 500);
-                    }
-                    if (result && result.status === 'success') {
-                        exams = result.data || [];
-                        updateGradeAndSchoolOptions();
-                        renderExams();
-                        if (isForceRefresh) {
-                            alert(`成功同步！目前共載入 ${exams.length} 份考卷。`);
-                        }
-                    } else {
-                        alert(`從試算表載入失敗：${result ? result.message : '未知錯誤'}`);
-                    }
-                    if (isForceRefresh) {
-                        refreshDataBtn.disabled = false;
-                        refreshDataBtn.innerHTML = `<i class="fa-solid fa-rotate text-xs"></i><span>重新同步雲端資料</span>`;
-                    }
-                })
-                .withFailureHandler(function(err) {
-                    if (globalLoadingOverlay) {
-                        globalLoadingOverlay.classList.add('opacity-0', 'pointer-events-none');
-                        setTimeout(() => { globalLoadingOverlay.style.display = 'none'; }, 500);
-                    }
-                    alert('無法連線至雲端後台：' + err.message);
-                    if (isForceRefresh) {
-                        refreshDataBtn.disabled = false;
-                        refreshDataBtn.innerHTML = `<i class="fa-solid fa-rotate text-xs"></i><span>重新同步雲端資料</span>`;
-                    }
-                })
-                .getExamsData(isForceRefresh);
+            });
         }
 
         // 動態連動「年級」與「學校」選單
