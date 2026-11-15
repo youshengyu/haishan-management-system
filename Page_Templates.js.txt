@@ -1,0 +1,338 @@
+<div class="max-w-[1400px] mx-auto space-y-6">
+    <!-- 頂部標題列 -->
+    <div class="bg-white rounded-2xl p-4 sm:px-6 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-comments"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 tracking-tight">常用聯絡事項範本</h2>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="openAddTemplateModal()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm shadow-violet-500/20 cursor-pointer">
+                <i class="fa-solid fa-plus"></i>
+                <span>新增自訂範本</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 搜尋與分類篩選工具列 -->
+    <div class="bg-white rounded-2xl px-6 py-3 shadow-sm border border-slate-200/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <!-- 分類標籤快速切換 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0" id="category-filter-tabs">
+            <button onclick="filterTemplatesByCategory('全部')" class="cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-violet-600 text-white shadow-sm shadow-violet-500/20 cursor-pointer">
+                全部範本
+            </button>
+            <button onclick="filterTemplatesByCategory('繳費提醒')" class="cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                繳費提醒
+            </button>
+            <button onclick="filterTemplatesByCategory('請假關懷')" class="cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                請假關懷
+            </button>
+            <button onclick="filterTemplatesByCategory('成績關心')" class="cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                成績關心
+            </button>
+            <button onclick="filterTemplatesByCategory('段考衝刺')" class="cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                段考衝刺
+            </button>
+            <button onclick="filterTemplatesByCategory('日常公告')" class="cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                日常公告
+            </button>
+        </div>
+
+        <!-- 關鍵字搜尋 -->
+        <div class="relative min-w-[260px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="template-search-input" oninput="filterTemplates()" placeholder="搜尋話術標題或內容..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500">
+        </div>
+    </div>
+
+    <!-- 範本卡片網格區 (3欄) -->
+    <div id="templates-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- 動態載入範本卡片 -->
+    </div>
+
+    <!-- 無符合結果提示 -->
+    <div id="templates-empty-state" class="hidden py-16 bg-white rounded-2xl border border-dashed border-slate-300 text-center">
+        <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mx-auto mb-3">
+            <i class="fa-solid fa-folder-open text-xl"></i>
+        </div>
+        <h3 class="font-bold text-slate-700 text-sm mb-1">找不到符合條件的範本</h3>
+        <p class="text-xs text-slate-400">請嘗試更換關鍵字或點選其他分類標籤</p>
+    </div>
+</div>
+
+<!-- 新增/編輯自訂範本 Modal -->
+<div id="template-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 overflow-hidden transform scale-95 transition-transform duration-200" id="template-modal-content">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 id="template-modal-title" class="font-bold text-slate-800 text-base">新增自訂聯絡話術</h3>
+            <button onclick="closeTemplateModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">話術分類</label>
+                <select id="modal-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500">
+                    <option value="繳費提醒">繳費提醒</option>
+                    <option value="請假關懷">請假關懷</option>
+                    <option value="成績關心">成績關心</option>
+                    <option value="段考衝刺">段考衝刺</option>
+                    <option value="日常公告">日常公告</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">話術標題</label>
+                <input type="text" id="modal-title" placeholder="例如：期中考退步關心話術" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">話術內容 (可使用 [學生姓名] 作為動態替換變數)</label>
+                <textarea id="modal-content" rows="5" placeholder="例如：親愛的 [學生姓名] 家長您好，我是海山教室的導師..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"></textarea>
+            </div>
+        </div>
+        <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button onclick="closeTemplateModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer">取消儲存</button>
+            <button onclick="saveCustomTemplate()" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-violet-500/20 cursor-pointer">儲存範本</button>
+        </div>
+    </div>
+</div>
+
+<!-- 複製成功 Toast 提示 -->
+<div id="copy-toast" class="fixed bottom-6 right-6 bg-slate-900/90 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg z-[3000] flex items-center gap-2 transform translate-y-12 opacity-0 transition-all duration-300 pointer-events-none">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toast-msg">已成功複製話術內容！</span>
+</div>
+
+<script>
+    // 預設話術資料庫
+    const defaultTemplates = [
+        {
+            id: 't1',
+            category: '繳費提醒',
+            title: '本期學費繳費貼心提醒',
+            content: '親愛的 [學生姓名] 家長您好：\n\n我是海山教室導師。溫馨提醒您本期（月份/期別）學費繳費期限至本週五（XX/XX）止。您可以選擇現金繳費或匯款至指定帳戶（帳號：XXXX-XXXXXXXX）。\n\n匯款完成後請回傳帳號末五碼以利對帳。感謝您的全力配合與支持！'
+        },
+        {
+            id: 't2',
+            category: '請假關懷',
+            title: '學生缺席/請假關心問候',
+            content: '親愛的 [學生姓名] 家長您好：\n\n今天孩子未出席課程且未事先請假，老師非常關心狀況是否一切安好？如孩子身體不適請多休息，也別忘了聯繫我們安排後續的補課時間喔！'
+        },
+        {
+            id: 't3',
+            category: '成績關心',
+            title: '段考成績退步關心與鼓勵',
+            content: '親愛的 [學生姓名] 家長您好：\n\n本次段考成績出爐後，老師發現 [學生姓名] 在某些科目（如數學/英文）稍有退步。孩子這陣子在學習上有些觀念較不穩定，老師已經幫他額外安排了錯題訂正與重點加強。建議近期在家也能給予孩子多一點鼓勵，我們一起陪他把基礎扎穩！'
+        },
+        {
+            id: 't4',
+            category: '成績關心',
+            title: '段考表現優異表揚恭喜',
+            content: '親愛的 [學生姓名] 家長您好：\n\n恭喜 [學生姓名] 這次段考表現非常優異（獲得班級前幾名 / 進步顯著）！這段時間孩子在課堂上專注度很高、作業也很確實。特此向家長道喜，也期許孩子繼續保持這股好表現！'
+        },
+        {
+            id: 't5',
+            category: '段考衝刺',
+            title: '考前衝刺班與模考通知',
+            content: '親愛的 [學生姓名] 家長您好：\n\n期末段考將至，海山教室將於下週末（XX/XX）舉辦「考前精選歷屆模考衝刺特訓班」。現場將帶領孩子演練各校最新段考題庫與重點解析，名額有限，若有意願讓孩子參加請回覆老師協助保留席位！'
+        },
+        {
+            id: 't6',
+            category: '日常公告',
+            title: '颱風天/氣象特報停課通知',
+            content: '親愛的 [學生姓名] 家長您好：\n\n因應（市政府公告 / 颱風警報），為顧及學生安全，今日（XX/XX）課程將暫停一次。停課之堂數後續將另擇期安排補課或順延，請各位家長與同學注意防颱安全！'
+        }
+    ];
+
+    let currentTemplates = [];
+    let selectedCategory = '全部';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadTemplates();
+    });
+
+    function loadTemplates() {
+        const saved = localStorage.getItem('haishan_custom_templates');
+        let customList = [];
+        try {
+            if (saved) customList = JSON.parse(saved);
+        } catch(e) { customList = []; }
+
+        currentTemplates = [...defaultTemplates, ...customList];
+        filterTemplates();
+    }
+
+    function filterTemplatesByCategory(cat) {
+        selectedCategory = cat;
+        document.querySelectorAll('.cat-tab').forEach(btn => {
+            if (btn.textContent.includes(cat) || (cat === '全部' && btn.textContent.includes('全部'))) {
+                btn.className = 'cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-violet-600 text-white shadow-sm shadow-violet-500/20 cursor-pointer';
+            } else {
+                btn.className = 'cat-tab px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer';
+            }
+        });
+        filterTemplates();
+    }
+
+    function filterTemplates() {
+        const keyword = (document.getElementById('template-search-input')?.value || '').trim().toLowerCase();
+        const grid = document.getElementById('templates-grid');
+        const emptyEl = document.getElementById('templates-empty-state');
+        if (!grid) return;
+
+        const filtered = currentTemplates.filter(item => {
+            if (selectedCategory !== '全部' && item.category !== selectedCategory) return false;
+            if (keyword) {
+                const searchStr = `${item.title} ${item.content} ${item.category}`.toLowerCase();
+                if (!searchStr.includes(keyword)) return false;
+            }
+            return true;
+        });
+
+        grid.innerHTML = '';
+        if (filtered.length === 0) {
+            emptyEl?.classList.remove('hidden');
+            return;
+        }
+        emptyEl?.classList.add('hidden');
+
+        filtered.forEach(item => {
+            let catColor = 'bg-violet-50 text-violet-700 border-violet-100';
+            if (item.category === '繳費提醒') catColor = 'bg-amber-50 text-amber-700 border-amber-100';
+            else if (item.category === '請假關懷') catColor = 'bg-blue-50 text-blue-700 border-blue-100';
+            else if (item.category === '成績關心') catColor = 'bg-rose-50 text-rose-700 border-rose-100';
+            else if (item.category === '段考衝刺') catColor = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 hover:border-violet-300 hover:shadow-md transition flex flex-col justify-between';
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold border ${catColor}">${item.category}</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] text-slate-400">點擊即複製</span>
+                        </div>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-800 mb-2">${item.title}</h3>
+                    <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 font-medium whitespace-pre-line leading-relaxed mb-3 max-h-36 overflow-y-auto border border-slate-100">${item.content}</div>
+                </div>
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 flex-grow">
+                        <input type="text" id="name-input-${item.id}" placeholder="輸入學生姓名..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium focus:outline-none focus:ring-1 focus:ring-violet-500">
+                    </div>
+                    <button onclick="copyTemplateText('${item.id}')" class="bg-violet-50 hover:bg-violet-100 text-violet-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border border-violet-200/60">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>複製話術</span>
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function copyTemplateText(id) {
+        const item = currentTemplates.find(t => t.id === id);
+        if (!item) return;
+
+        const nameInput = document.getElementById(`name-input-${id}`);
+        const studentName = nameInput ? nameInput.value.trim() : '';
+
+        let finalContent = item.content;
+        if (studentName) {
+            finalContent = finalContent.replace(/\[學生姓名\]/g, studentName);
+        }
+
+        // 複製到剪貼簿
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(finalContent).then(() => {
+                showToast(studentName ? `已將話術複製（學生：${studentName}）` : '已成功複製完整話術！');
+            }).catch(() => fallbackCopy(finalContent));
+        } else {
+            fallbackCopy(finalContent);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showToast('已成功複製話術內容！');
+        } catch (e) {
+            showToast('複製失敗，請手動複製');
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('copy-toast');
+        const msgSpan = document.getElementById('toast-msg');
+        if (!toast || !msgSpan) return;
+        msgSpan.textContent = msg;
+        toast.classList.remove('translate-y-12', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-12', 'opacity-0');
+        }, 2500);
+    }
+
+    function openAddTemplateModal() {
+        const modal = document.getElementById('template-modal');
+        const contentDiv = document.getElementById('template-modal-content');
+        if (!modal) return;
+        document.getElementById('modal-title').value = '';
+        document.getElementById('modal-content').value = '';
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            contentDiv.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeTemplateModal() {
+        const modal = document.getElementById('template-modal');
+        const contentDiv = document.getElementById('template-modal-content');
+        if (!modal) return;
+        modal.classList.add('opacity-0');
+        contentDiv.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    function saveCustomTemplate() {
+        const cat = document.getElementById('modal-cat').value;
+        const title = document.getElementById('modal-title').value.trim();
+        const content = document.getElementById('modal-content').value.trim();
+
+        if (!title || !content) {
+            showToast('請填寫話術標題與內容！');
+            return;
+        }
+
+        const newObj = {
+            id: 'custom_' + Date.now(),
+            category: cat,
+            title: title,
+            content: content
+        };
+
+        const saved = localStorage.getItem('haishan_custom_templates');
+        let customList = [];
+        try {
+            if (saved) customList = JSON.parse(saved);
+        } catch(e) { customList = []; }
+
+        customList.push(newObj);
+        localStorage.setItem('haishan_custom_templates', JSON.stringify(customList));
+
+        closeTemplateModal();
+        loadTemplates();
+        showToast('已成功新增自訂範本！');
+    }
+</script>

@@ -1,0 +1,766 @@
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海山教室事蹟表系統</title>
+    <!-- 引入 Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .bg-pending { background-color: #dc3545 !important; color: white !important; }
+        .bg-waiting { background-color: #ffc107 !important; color: #212529 !important; }
+        .bg-makeup { background-color: #0dcaf0 !important; color: #212529 !important; }
+        .bg-done { background-color: #198754 !important; color: white !important; }
+        
+        /* 讓表格與彈跳視窗內的內容欄位支援自動換行與保留 Enter 格式 */
+        .content-cell {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .student-link {
+            color: #0d6efd;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .student-link:hover {
+            color: #0a58ca;
+            font-weight: bold;
+        }
+
+        .counter-badge {
+            cursor: pointer;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            background-color: #e9ecef;
+            color: #333;
+            border: 1px solid #ced4da;
+            transition: opacity 0.2s, transform 0.1s;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .counter-badge:hover {
+            background-color: #dde2e6;
+            transform: scale(1.03);
+        }
+        .counter-num {
+            background-color: #ffffff;
+            color: #000000 !important;
+            padding: 1px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+            border: 1px solid #adb5bd;
+        }
+
+        @media print {
+            body { background-color: white; padding: 0; }
+            .no-print { display: none !important; }
+            .card { border: none !important; box-shadow: none !important; }
+            .card-header { background-color: #343a40 !important; color: white !important; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+
+    <div class="container my-3">
+        <h2 class="text-center mb-4">🏫 海山教室日常事蹟記錄系統</h2>
+
+        <!-- 新增 / 編輯記事表單 -->
+        <div class="card shadow mb-5 no-print" id="formCard">
+            <div class="card-header bg-primary text-white" id="formTitle">新增今日事蹟</div>
+            <div class="card-body">
+                <form id="recordForm">
+                    <input type="hidden" id="editRowIndex" value="">
+
+                    <div class="row mb-3 g-2">
+                        <div class="col">
+                            <label for="recordDate" class="form-label">事件日期</label>
+                            <input type="date" class="form-control" id="recordDate" required>
+                        </div>
+                        <div class="col">
+                            <label for="recordCategory" class="form-label">事件類別</label>
+                            <select class="form-select" id="recordCategory" onchange="onCategoryChange()" required>
+                                <option value="">請選擇...</option>
+                                <option value="請假">請假與缺席</option>
+                                <option value="調補課">調課與補課</option>
+                                <option value="問班體驗">問班與新進體驗</option>
+                                <option value="學費行政">學費與行政</option>
+                                <option value="學習狀況">學生學習狀況</option>
+                                <option value="其他事項">其他事項</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label for="studentName" class="form-label">學生姓名</label>
+                            <!-- 加上 list 屬性與對應的 datalist，實現自動完成建議 -->
+                            <input type="text" class="form-control" id="studentName" placeholder="選填或輸入搜尋" list="studentListOptions">
+                            <datalist id="studentListOptions">
+                                <!-- 動態載入現有學生名單 -->
+                            </datalist>
+                        </div>
+                        <div class="col">
+                            <label for="recordChannel" class="form-label">聯繫管道</label>
+                            <select class="form-select" id="recordChannel" required>
+                                <option value="">請選擇...</option>
+                                <option value="LINE">LINE</option>
+                                <option value="電話">電話</option>
+                                <option value="現場">現場</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label for="recordStatus" class="form-label">處理狀態</label>
+                            <select class="form-select" id="recordStatus" required>
+                                <option value="待處理">待處理</option>
+                                <option value="待回覆">待回覆</option>
+                                <option value="待補課">待補課</option>
+                                <option value="已完成" selected>已完成</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="recordContent" class="form-label">記事內容與後續處理</label>
+                        <textarea class="form-control" id="recordContent" rows="3" placeholder="請輸入詳細對話或處理進度..." required></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success" id="submitBtn">送出並同步至試算表</button>
+                        <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display: none;" onclick="cancelEdit()">取消編輯</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 列表控制區 -->
+        <div class="card shadow-sm mb-4 no-print">
+            <div class="card-body">
+                <div class="row align-items-center g-2">
+                    <div class="col-lg-2">
+                        <h4 class="mb-0">📋 列表</h4>
+                    </div>
+                    <div class="col-lg-3">
+                        <input type="text" class="form-control" id="searchInput" placeholder="🔍 搜尋學生姓名、內容..." oninput="filterTables()">
+                    </div>
+                    <div class="col-lg-2">
+                        <select class="form-select" id="filterCategory" onchange="filterTables()">
+                            <option value="all">📁 全部類別</option>
+                            <option value="請假">請假與缺席</option>
+                            <option value="調補課">調課與補課</option>
+                            <option value="問班體驗">問班與新進體驗</option>
+                            <option value="學費行政">學費與行政</option>
+                            <option value="學習狀況">學生學習狀況</option>
+                            <option value="其他事項">其他事項</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
+                        <select class="form-select" id="filterStatus" onchange="filterTables()">
+                            <option value="all">📌 全部狀態</option>
+                            <option value="待處理">🔴 待處理</option>
+                            <option value="待回覆">🟡 待回覆</option>
+                            <option value="待補課">🔵 待補課</option>
+                            <option value="已完成">🟢 已完成</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-3">
+                        <select class="form-select" id="filterDateRange" onchange="toggleCustomDateInput(); filterTables();">
+                            <option value="all" selected>📅 全部日期</option>
+                            <option value="today">⭐ 僅看今日</option>
+                            <option value="week">📆 本週紀錄</option>
+                            <option value="custom">⚙️ 自訂日期區間</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 自訂日期選單 -->
+                <div class="row mt-3 g-2" id="customDateRow" style="display: none;">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text">起</span>
+                            <input type="date" class="form-control" id="startDate" onchange="filterTables()">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text">迄</span>
+                            <input type="date" class="form-control" id="endDate" onchange="filterTables()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="resetDateFilter()">重設日期</button>
+                    </div>
+                </div>
+
+                <!-- 底部工具列 -->
+                <div class="row mt-3 pt-2 border-top no-print align-items-center">
+                    <div class="col-md-8 d-flex gap-2 flex-wrap align-items-center mb-2 mb-md-0">
+                        <span class="text-muted small me-1">即時統計：</span>
+                        <div class="counter-badge" onclick="quickFilterStatus('待處理')" title="點擊過濾「待處理」">
+                            🔴 待處理 <span id="countPending" class="counter-num">0</span>
+                        </div>
+                        <div class="counter-badge" onclick="quickFilterStatus('待回覆')" title="點擊過濾「待回覆」">
+                            🟡 待回覆 <span id="countWaiting" class="counter-num">0</span>
+                        </div>
+                        <div class="counter-badge" onclick="quickFilterStatus('待補課')" title="點擊過濾「待補課」">
+                            🔵 待補課 <span id="countMakeup" class="counter-num">0</span>
+                        </div>
+                        <div class="counter-badge" onclick="quickFilterStatus('已完成')" title="點擊過濾「已完成」">
+                            🟢 已完成 <span id="countDone" class="counter-num">0</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 d-flex justify-content-md-end gap-2">
+                        <button class="btn btn-dark btn-sm" onclick="copyHandoverText()">📋 複製目前顯示的交接文字</button>
+                        <button class="btn btn-outline-dark btn-sm" onclick="window.print()">🖨️ 列印交接報表</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 表格區域 -->
+        <div class="card mb-4 category-card" data-category="請假">
+            <div class="card-header bg-secondary text-white">請假與缺席</div>
+            <div class="card-body">
+                <table class="table table-striped align-middle" id="table-leave">
+                    <thead><tr><th style="width: 10%;">日期</th><th style="width: 12%;">學生</th><th style="width: 10%;">管道</th><th style="width: 12%;">狀態</th><th style="width: 42%;">內容</th><th class="no-print" style="width: 14%; text-align: center;">操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4 category-card" data-category="調補課">
+            <div class="card-header bg-secondary text-white">調課與補課</div>
+            <div class="card-body">
+                <table class="table table-striped align-middle" id="table-reschedule">
+                    <thead><tr><th style="width: 10%;">日期</th><th style="width: 12%;">學生</th><th style="width: 10%;">管道</th><th style="width: 12%;">狀態</th><th style="width: 42%;">內容</th><th class="no-print" style="width: 14%; text-align: center;">操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4 category-card" data-category="問班體驗">
+            <div class="card-header bg-secondary text-white">問班與新進體驗</div>
+            <div class="card-body">
+                <table class="table table-striped align-middle" id="table-inquiry">
+                    <thead><tr><th style="width: 10%;">日期</th><th style="width: 12%;">學生</th><th style="width: 10%;">管道</th><th style="width: 12%;">狀態</th><th style="width: 42%;">內容</th><th class="no-print" style="width: 14%; text-align: center;">操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4 category-card" data-category="學費行政">
+            <div class="card-header bg-secondary text-white">學費與行政</div>
+            <div class="card-body">
+                <table class="table table-striped align-middle" id="table-tuition">
+                    <thead><tr><th style="width: 10%;">日期</th><th style="width: 12%;">學生</th><th style="width: 10%;">管道</th><th style="width: 12%;">狀態</th><th style="width: 42%;">內容</th><th class="no-print" style="width: 14%; text-align: center;">操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4 category-card" data-category="學習狀況">
+            <div class="card-header bg-secondary text-white">學生學習狀況</div>
+            <div class="card-body">
+                <table class="table table-striped align-middle" id="table-progress">
+                    <thead><tr><th style="width: 10%;">日期</th><th style="width: 12%;">學生</th><th style="width: 10%;">管道</th><th style="width: 12%;">狀態</th><th style="width: 42%;">內容</th><th class="no-print" style="width: 14%; text-align: center;">操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4 category-card" data-category="其他事項">
+            <div class="card-header bg-secondary text-white">其他事項</div>
+            <div class="card-body">
+                <table class="table table-striped align-middle" id="table-others">
+                    <thead><tr><th style="width: 10%;">日期</th><th style="width: 12%;">學生</th><th style="width: 10%;">管道</th><th style="width: 12%;">狀態</th><th style="width: 42%;">內容</th><th class="no-print" style="width: 14%; text-align: center;">操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 學生歷史紀錄彈跳視窗 (Modal) -->
+    <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="studentModalLabel">👤 學生歷史紀錄</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="studentModalAlert" class="alert alert-info mb-3">
+                        載入中...
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%;">日期</th>
+                                    <th style="width: 18%;">事件類別</th>
+                                    <th style="width: 12%;">管道</th>
+                                    <th style="width: 15%;">狀態</th>
+                                    <th>詳細內容</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentModalTbody">
+                                <!-- 動態填入歷史資料 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript 處理 -->
+    <script>
+        const categoryMap = {
+            '請假': 'table-leave',
+            '調補課': 'table-reschedule',
+            '問班體驗': 'table-inquiry',
+            '學費行政': 'table-tuition',
+            '學習狀況': 'table-progress',
+            '其他事項': 'table-others'
+        };
+
+        let allRecords = [];
+        let studentModalObj = null;
+
+        function getLocalDateString(dateObj = new Date()) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const todayStr = getLocalDateString();
+            document.getElementById('recordDate').value = todayStr;
+            document.getElementById('startDate').value = todayStr;
+            document.getElementById('endDate').value = todayStr;
+            
+            studentModalObj = new bootstrap.Modal(document.getElementById('studentModal'));
+            
+            loadData();
+        });
+
+        function onCategoryChange() {
+            const category = document.getElementById('recordCategory').value;
+            const statusSelect = document.getElementById('recordStatus');
+            const editRowIndex = document.getElementById('editRowIndex').value;
+
+            if (category === '調補課' && !editRowIndex) {
+                statusSelect.value = '待補課';
+            }
+        }
+
+        document.getElementById('recordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const editRowIndex = document.getElementById('editRowIndex').value;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerText = '儲存中...';
+
+            const data = {
+                date: document.getElementById('recordDate').value,
+                category: document.getElementById('recordCategory').value,
+                studentName: document.getElementById('studentName').value.trim(),
+                channel: document.getElementById('recordChannel').value,
+                status: document.getElementById('recordStatus').value,
+                content: document.getElementById('recordContent').value
+            };
+
+            if (editRowIndex) {
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        // 成功時不彈出視窗，直接在背景更新並重新載入列表
+                        cancelEdit();
+                        loadData();
+                    })
+                    .withFailureHandler(function(error) {
+                        alert('更新失敗：' + error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = '確認修改';
+                    })
+                    .updateRecord(parseInt(editRowIndex), data);
+            } else {
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        // 成功時不彈出視窗，直接在背景重設表單並重新載入列表
+                        document.getElementById('recordForm').reset();
+                        document.getElementById('recordDate').value = getLocalDateString();
+                        document.getElementById('recordStatus').value = '已完成';
+
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = '送出並同步至試算表';
+                        loadData();
+                    })
+                    .withFailureHandler(function(error) {
+                        alert('發生錯誤：' + error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = '送出並同步至試算表';
+                    })
+                    .addRecord(data);
+            }
+        });
+
+        function loadData() {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    allRecords = data || [];
+                    
+                    // 自動收集並更新學生自動完成清單 (Datalist)
+                    updateStudentDatalist(allRecords);
+
+                    Object.values(categoryMap).forEach(tableId => {
+                        const tbody = document.querySelector(`#${tableId} tbody`);
+                        if (tbody) tbody.innerHTML = '';
+                    });
+
+                    let pendingCount = 0;
+                    let waitingCount = 0;
+                    let makeupCount = 0;
+                    let doneCount = 0;
+
+                    if (data && data.length > 0) {
+                        data.forEach(row => {
+                            const status = row.status ? row.status.trim() : '已完成';
+                            
+                            if (status === '待處理') pendingCount++;
+                            else if (status === '待回覆') waitingCount++;
+                            else if (status === '待補課') makeupCount++;
+                            else if (status === '已完成') doneCount++;
+
+                            const cat = row.category ? row.category.trim() : '';
+                            const tableId = categoryMap[cat];
+                            
+                            if (tableId) {
+                                const tbody = document.querySelector(`#${tableId} tbody`);
+                                if (tbody) {
+                                    const tr = document.createElement('tr');
+                                    
+                                    const rawDate = row.date || '';
+                                    tr.setAttribute('data-date', rawDate);
+                                    tr.setAttribute('data-status', status);
+
+                                    let displayDate = rawDate;
+                                    if (displayDate.includes('-')) {
+                                        const parts = displayDate.split('-');
+                                        if (parts.length === 3) {
+                                            displayDate = `${parseInt(parts[1])}/${parseInt(parts[2])}`;
+                                        }
+                                    }
+
+                                    const studentName = row.studentName ? row.studentName.trim() : '-';
+                                    const channel = row.channel ? row.channel.trim() : '-';
+                                    const content = row.content || '';
+
+                                    let statusBadge = `<span class="status-badge bg-done">${status}</span>`;
+                                    if (status === '待處理') {
+                                        statusBadge = `<span class="status-badge bg-pending">${status}</span>`;
+                                    } else if (status === '待回覆') {
+                                        statusBadge = `<span class="status-badge bg-waiting">${status}</span>`;
+                                    } else if (status === '待補課') {
+                                        statusBadge = `<span class="status-badge bg-makeup">${status}</span>`;
+                                    }
+
+                                    let studentDisplay = '-';
+                                    if (studentName !== '-') {
+                                        const safeStudentName = studentName.replace(/'/g, "\\'");
+                                        studentDisplay = `<strong class="student-link" onclick="openStudentModal('${safeStudentName}')" title="點擊檢視 ${studentName} 的歷史紀錄">${studentName}</strong>`;
+                                    }
+
+                                    const rowDataEncoded = encodeURIComponent(JSON.stringify(row));
+
+                                    tr.innerHTML = `
+                                        <td>${displayDate}</td>
+                                        <td>${studentDisplay}</td>
+                                        <td>${channel}</td>
+                                        <td>${statusBadge}</td>
+                                        <td class="content-cell">${content}</td>
+                                        <td class="no-print text-nowrap" style="text-align: center;">
+                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editRecord('${rowDataEncoded}')">編輯</button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord(${row.rowIndex})">刪除</button>
+                                        </td>
+                                    `;
+                                    tbody.appendChild(tr);
+                                }
+                            }
+                        });
+                    }
+
+                    document.getElementById('countPending').innerText = pendingCount;
+                    document.getElementById('countWaiting').innerText = waitingCount;
+                    document.getElementById('countMakeup').innerText = makeupCount;
+                    document.getElementById('countDone').innerText = doneCount;
+                    
+                    filterTables();
+                })
+                .withFailureHandler(function(error) {
+                    console.error('載入失敗:', error);
+                })
+                .getRecords();
+        }
+
+        // 萃取現有不重複的學生姓名，更新至 datalist
+        function updateStudentDatalist(records) {
+            const studentSet = new Set();
+            records.forEach(r => {
+                if (r.studentName && r.studentName.trim() !== '' && r.studentName.trim() !== '-') {
+                    studentSet.add(r.studentName.trim());
+                }
+            });
+
+            const datalist = document.getElementById('studentListOptions');
+            datalist.innerHTML = '';
+
+            // 轉成陣列並排序（筆劃或注音排序）
+            const sortedStudents = Array.from(studentSet).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+            sortedStudents.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                datalist.appendChild(option);
+            });
+        }
+
+        function openStudentModal(studentName) {
+            document.getElementById('studentModalLabel').innerText = `👤 ${studentName} 的全紀錄清單`;
+            
+            const studentRecords = allRecords.filter(r => r.studentName && r.studentName.trim() === studentName);
+            studentRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const tbody = document.getElementById('studentModalTbody');
+            tbody.innerHTML = '';
+
+            const alertDiv = document.getElementById('studentModalAlert');
+            alertDiv.className = 'alert alert-info mb-3';
+            alertDiv.innerText = `共查詢到 ${studentRecords.length} 筆與 「${studentName}」 相關的事蹟紀錄：`;
+
+            if (studentRecords.length > 0) {
+                studentRecords.forEach(r => {
+                    const tr = document.createElement('tr');
+                    
+                    const status = r.status ? r.status.trim() : '已完成';
+                    let statusBadge = `<span class="status-badge bg-done">${status}</span>`;
+                    if (status === '待處理') statusBadge = `<span class="status-badge bg-pending">${status}</span>`;
+                    else if (status === '待回覆') statusBadge = `<span class="status-badge bg-waiting">${status}</span>`;
+                    else if (status === '待補課') statusBadge = `<span class="status-badge bg-makeup">${status}</span>`;
+
+                    tr.innerHTML = `
+                        <td>${r.date || '-'}</td>
+                        <td><span class="badge bg-secondary">${r.category || '-'}</span></td>
+                        <td>${r.channel || '-'}</td>
+                        <td>${statusBadge}</td>
+                        <td class="content-cell">${r.content || ''}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">查無歷史紀錄</td></tr>`;
+            }
+
+            studentModalObj.show();
+        }
+
+        function quickFilterStatus(statusVal) {
+            document.getElementById('filterStatus').value = statusVal;
+            filterTables();
+        }
+
+        function editRecord(encodedData) {
+            const row = JSON.parse(decodeURIComponent(encodedData));
+
+            document.getElementById('editRowIndex').value = row.rowIndex;
+            document.getElementById('recordDate').value = row.date || getLocalDateString();
+            document.getElementById('recordCategory').value = row.category || '';
+            document.getElementById('studentName').value = row.studentName === '-' ? '' : row.studentName;
+            document.getElementById('recordChannel').value = row.channel || '';
+            document.getElementById('recordStatus').value = row.status || '已完成';
+            document.getElementById('recordContent').value = row.content || '';
+
+            document.getElementById('formCard').className = 'card shadow mb-5 border-warning';
+            document.getElementById('formTitle').className = 'card-header bg-warning text-dark fw-bold';
+            document.getElementById('formTitle').innerText = '編輯記事內容';
+            document.getElementById('submitBtn').className = 'btn btn-warning fw-bold';
+            document.getElementById('submitBtn').innerText = '確認修改';
+            document.getElementById('cancelEditBtn').style.display = 'inline-block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            document.getElementById('recordForm').reset();
+            document.getElementById('editRowIndex').value = '';
+            document.getElementById('recordDate').value = getLocalDateString();
+            document.getElementById('recordStatus').value = '已完成';
+
+            document.getElementById('formCard').className = 'card shadow mb-5';
+            document.getElementById('formTitle').className = 'card-header bg-primary text-white';
+            document.getElementById('formTitle').innerText = '新增今日事蹟';
+            document.getElementById('submitBtn').className = 'btn btn-success';
+            document.getElementById('submitBtn').innerText = '送出並同步至試算表';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        function deleteRecord(rowIndex) {
+            if (confirm('確定要刪除這筆紀錄嗎？此動作無法復原。')) {
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        alert('刪除成功！');
+                        loadData();
+                    })
+                    .withFailureHandler(function(error) {
+                        alert('刪除失敗：' + error);
+                    })
+                    .deleteRecord(rowIndex);
+            }
+        }
+
+        function copyHandoverText() {
+            let handoverText = "🏫 【海山教室日常交接摘要】\n====================\n";
+            let count = 0;
+
+            const cards = document.querySelectorAll('.category-card');
+            cards.forEach(card => {
+                if (card.style.display !== 'none') {
+                    const categoryTitle = card.querySelector('.card-header').innerText;
+                    const visibleRows = card.querySelectorAll('tbody tr');
+                    
+                    let cardLines = [];
+                    visibleRows.forEach(row => {
+                        if (row.style.display !== 'none') {
+                            const cols = row.querySelectorAll('td');
+                            const date = cols[0].innerText;
+                            const student = cols[1].innerText;
+                            const channel = cols[2].innerText;
+                            const status = cols[3].innerText.trim();
+                            const content = cols[4].innerText;
+                            
+                            cardLines.push(`- [${date}] (${status}) 學生: ${student} | 管道: ${channel}\n  內容: ${content}`);
+                            count++;
+                        }
+                    });
+
+                    if (cardLines.length > 0) {
+                        handoverText += `\n【${categoryTitle}】\n` + cardLines.join('\n') + "\n";
+                    }
+                }
+            });
+
+            if (count === 0) {
+                alert('目前沒有符合篩選條件的資料可供匯出！');
+                return;
+            }
+
+            handoverText += "\n====================\n請各位老師留意以上交辦事項，謝謝！";
+
+            navigator.clipboard.writeText(handoverText).then(function() {
+                alert('✅ 已成功複製交接文字！可直接貼上至 LINE 群組。');
+            }, function(err) {
+                alert('複製失敗：' + err);
+            });
+        }
+
+        function toggleCustomDateInput() {
+            const val = document.getElementById('filterDateRange').value;
+            const customRow = document.getElementById('customDateRow');
+            if (val === 'custom') {
+                customRow.style.display = 'flex';
+            } else {
+                customRow.style.display = 'none';
+            }
+        }
+
+        function resetDateFilter() {
+            document.getElementById('filterDateRange').value = 'all';
+            toggleCustomDateInput();
+            filterTables();
+        }
+
+        function filterTables() {
+            const selectedCategory = document.getElementById('filterCategory').value;
+            const selectedStatus = document.getElementById('filterStatus').value;
+            const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+            const dateRangeType = document.getElementById('filterDateRange').value;
+            
+            const todayStr = getLocalDateString();
+            
+            const now = new Date();
+            const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - dayOfWeek);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            const mondayStr = getLocalDateString(monday);
+            const sundayStr = getLocalDateString(sunday);
+
+            const customStart = document.getElementById('startDate').value;
+            const customEnd = document.getElementById('endDate').value;
+
+            const cards = document.querySelectorAll('.category-card');
+
+            cards.forEach(card => {
+                const cardCategory = card.getAttribute('data-category');
+                
+                const matchCategory = (selectedCategory === 'all' || cardCategory === selectedCategory);
+                if (!matchCategory) {
+                    card.style.display = 'none';
+                    return;
+                }
+
+                const rows = card.querySelectorAll('tbody tr');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const rowDate = row.getAttribute('data-date');
+                    const rowStatus = row.getAttribute('data-status');
+                    const rowText = row.innerText.toLowerCase();
+
+                    const matchStatus = (selectedStatus === 'all' || rowStatus === selectedStatus);
+
+                    let matchDate = true;
+                    if (dateRangeType === 'today') {
+                        matchDate = (rowDate === todayStr);
+                    } else if (dateRangeType === 'week') {
+                        matchDate = (rowDate >= mondayStr && rowDate <= sundayStr);
+                    } else if (dateRangeType === 'custom') {
+                        if (customStart && customEnd) {
+                            matchDate = (rowDate >= customStart && rowDate <= customEnd);
+                        }
+                    }
+
+                    const matchKeyword = (keyword === '' || rowText.includes(keyword));
+
+                    if (matchStatus && matchDate && matchKeyword) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                if (visibleCount > 0) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>

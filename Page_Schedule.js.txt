@@ -1,0 +1,362 @@
+<div class="max-w-[1400px] mx-auto space-y-6">
+    <!-- 頂部標題列 -->
+    <div class="bg-white rounded-2xl p-4 sm:px-6 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-calendar-days"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 tracking-tight">學校段考日與大考查詢</h2>
+            </div>
+        </div>
+
+        <button onclick="loadExamData(true)" class="bg-teal-50 hover:bg-teal-100 text-teal-700 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-teal-200/80 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-rotate"></i>
+            <span>重新同步試算表行事曆</span>
+        </button>
+    </div>
+
+    <!-- 篩選與檢視工具列 -->
+    <div class="bg-white rounded-2xl px-6 py-4 shadow-sm border border-slate-200/80">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">教育學制</label>
+                <select id="exam-level-select" onchange="onLevelChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                    <option value="">全部學制 (含全國大考)</option>
+                    <option value="國小">國小</option>
+                    <option value="國中">國中</option>
+                    <option value="高中">高中</option>
+                    <option value="大考">全國大考專區</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">學校名稱</label>
+                <select id="exam-school-select" onchange="renderCalendar()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                    <option value="">全部學校</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">考試階段</label>
+                <select id="exam-stage-select" onchange="renderCalendar()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                    <option value="">全部考試階段</option>
+                    <option value="期中考">期中考</option>
+                    <option value="期末考">期末考</option>
+                    <option value="第一次段考">第一次段考</option>
+                    <option value="第二次段考">第二次段考</option>
+                    <option value="第三次段考">第三次段考</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="resetExamFilter()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+                    重設篩選
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 中間月曆主卡片 -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+        <!-- 月曆控制列 -->
+        <div class="flex items-center justify-between mb-6">
+            <h3 id="calendar-month-title" class="text-lg font-bold text-slate-800">2026年 11月</h3>
+            <div class="flex items-center gap-1.5">
+                <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
+                <button onclick="goToCurrentMonth()" class="px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition cursor-pointer">
+                    本月
+                </button>
+                <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 星期表頭 -->
+        <div class="grid grid-cols-7 gap-2 mb-2 text-center">
+            <div class="text-xs font-bold text-rose-500 py-1">日</div>
+            <div class="text-xs font-bold text-slate-600 py-1">一</div>
+            <div class="text-xs font-bold text-slate-600 py-1">二</div>
+            <div class="text-xs font-bold text-slate-600 py-1">三</div>
+            <div class="text-xs font-bold text-slate-600 py-1">四</div>
+            <div class="text-xs font-bold text-slate-600 py-1">五</div>
+            <div class="text-xs font-bold text-rose-500 py-1">六</div>
+        </div>
+
+        <!-- 月曆日期格子網格 -->
+        <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+            <!-- 動態產生月曆日期 -->
+        </div>
+    </div>
+
+    <!-- 下方檢視：當月所有符合的段考與大考列表 -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-teal-600"></i>
+            <span>當月段考與大考行程明細</span>
+        </h3>
+        <div id="exam-list-container" class="space-y-2.5">
+            <!-- 動態明細 -->
+        </div>
+        <div id="exam-empty-state" class="hidden py-8 text-center text-slate-400 text-xs">
+            本月無符合條件的學校段考或大考行程
+        </div>
+    </div>
+</div>
+
+<script>
+    let rawSchoolExams = [];
+    let rawMajorExams = [];
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth(); // 0-11
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadExamData(false);
+    });
+
+    function loadExamData(isManual) {
+        if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if (res && res.status === 'success') {
+                    rawSchoolExams = res.data.schoolExams || [];
+                    rawMajorExams = res.data.majorExams || [];
+                    populateSchoolOptions();
+                    renderCalendar();
+                }
+            })
+            .getExamSchedules();
+    }
+
+    function populateSchoolOptions() {
+        const levelVal = document.getElementById('exam-level-select')?.value || '';
+        const schoolSelect = document.getElementById('exam-school-select');
+        if (!schoolSelect) return;
+
+        const currentSchool = schoolSelect.value;
+        let targets = rawSchoolExams;
+        if (levelVal && levelVal !== '大考') {
+            targets = rawSchoolExams.filter(i => i.level === levelVal);
+        }
+
+        const schools = [...new Set(targets.map(i => i.school))].filter(Boolean).sort();
+        schoolSelect.innerHTML = '<option value="">全部學校</option>';
+        schools.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            if (s === currentSchool) opt.selected = true;
+            schoolSelect.appendChild(opt);
+        });
+    }
+
+    function onLevelChange() {
+        populateSchoolOptions();
+        renderCalendar();
+    }
+
+    function resetExamFilter() {
+        document.getElementById('exam-level-select').value = '';
+        populateSchoolOptions();
+        document.getElementById('exam-school-select').value = '';
+        document.getElementById('exam-stage-select').value = '';
+        renderCalendar();
+    }
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        } else if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        renderCalendar();
+    }
+
+    function goToCurrentMonth() {
+        currentYear = new Date().getFullYear();
+        currentMonth = new Date().getMonth();
+        renderCalendar();
+    }
+
+    // 解析日期區間字串 (例如 "11/5-11/6" 或 "1/15、1/18-1/19")
+    function parseDateRanges(dateStr, year) {
+        let dates = [];
+        if (!dateStr) return dates;
+        
+        let parts = dateStr.split(/[,、]/);
+        parts.forEach(part => {
+            part = part.trim();
+            if (part.includes('-')) {
+                let range = part.split('-');
+                let start = parseSingleDate(range[0].trim(), year);
+                let end = parseSingleDate(range[1].trim(), year);
+                if (start && end) {
+                    let curr = new Date(start);
+                    while (curr <= end) {
+                        dates.push(new Date(curr));
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                }
+            } else {
+                let d = parseSingleDate(part, year);
+                if (d) dates.push(d);
+            }
+        });
+        return dates;
+    }
+
+    function parseSingleDate(str, year) {
+        let m = str.match(/(\d{1,2})\/(\d{1,2})/);
+        if (!m) return null;
+        let month = parseInt(m[1]) - 1;
+        let day = parseInt(m[2]);
+        return new Date(year, month, day);
+    }
+
+    function renderCalendar() {
+        const titleEl = document.getElementById('calendar-month-title');
+        const gridEl = document.getElementById('calendar-grid');
+        const listEl = document.getElementById('exam-list-container');
+        const emptyEl = document.getElementById('exam-empty-state');
+        if (!gridEl) return;
+
+        titleEl.textContent = `${currentYear}年 ${currentMonth + 1}月`;
+        gridEl.innerHTML = '';
+        listEl.innerHTML = '';
+
+        const levelVal = document.getElementById('exam-level-select')?.value || '';
+        const schoolVal = document.getElementById('exam-school-select')?.value || '';
+        const stageVal = document.getElementById('exam-stage-select')?.value || '';
+
+        // 1. 收集過濾後的學校段考
+        let activeExams = [];
+        if (levelVal !== '大考') {
+            let filteredSchoolExams = rawSchoolExams.filter(item => {
+                if (levelVal && item.level !== levelVal) return false;
+                if (schoolVal && item.school !== schoolVal) return false;
+                if (stageVal) {
+                    // 對應選單文字與試算表中的考試名稱 (例如 "一段" 對應 "第一次段考" 或使用者自訂)
+                    let normalizedExam = item.exam;
+                    if (stageVal === '第一次段考' && (item.exam === '一段' || item.exam === '第一次段考')) {
+                        // 匹配成功
+                    } else if (stageVal === '第二次段考' && (item.exam === '二段' || item.exam === '第二次段考')) {
+                        // 匹配成功
+                    } else if (stageVal === '第三次段考' && (item.exam === '三段' || item.exam === '高三三段' || item.exam === '第三次段考')) {
+                        // 匹配成功
+                    } else if (item.exam !== stageVal) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            filteredSchoolExams.forEach(item => {
+                let parsedDates = parseDateRanges(item.dateStr, currentYear);
+                parsedDates.forEach(d => {
+                    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+                        activeExams.push({
+                            date: d,
+                            title: `${item.school} ${item.exam}`,
+                            type: 'school',
+                            dateStr: item.dateStr
+                        });
+                    }
+                });
+            });
+        }
+
+        // 2. 全國性大考永久顯示 (若有選特定學校或特定階段則依條件過濾大考)
+        if (!schoolVal && (!stageVal || stageVal.includes('大考') || stageVal === '')) {
+            rawMajorExams.forEach(item => {
+                let parsedDates = parseDateRanges(item.dateStr, currentYear);
+                parsedDates.forEach(d => {
+                    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+                        activeExams.push({
+                            date: d,
+                            title: `[全國大考] ${item.name}`,
+                            type: 'major',
+                            dateStr: item.dateStr
+                        });
+                    }
+                });
+            });
+        }
+
+        // 繪製月曆格子
+        const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        for (let i = 0; i < firstDayIndex; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'bg-slate-50/50 rounded-xl h-24 sm:h-28 border border-slate-100 opacity-40';
+            gridEl.appendChild(emptyCell);
+        }
+
+        for (let day = 1; day <= totalDays; day++) {
+            const cellDate = new Date(currentYear, currentMonth, day);
+            const cell = document.createElement('div');
+            cell.className = 'bg-white rounded-xl p-2 h-24 sm:h-28 border border-slate-200/80 flex flex-col justify-between overflow-y-auto';
+
+            const dayExams = activeExams.filter(e => e.date.getDate() === day);
+
+            let examsHtml = '';
+            dayExams.forEach(ex => {
+                let badgeClass = 'bg-teal-50 text-teal-700 border-teal-200';
+                if (ex.type === 'major') badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
+                examsHtml += `<div class="text-[10px] px-1.5 py-0.5 rounded border ${badgeClass} truncate mb-0.5" title="${ex.title}">${ex.title}</div>`;
+            });
+
+            cell.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold ${cellDate.getDay() === 0 || cellDate.getDay() === 6 ? 'text-rose-500' : 'text-slate-700'}">${day}</span>
+                </div>
+                <div class="space-y-0.5 mt-1 flex-grow overflow-y-auto">
+                    ${examsHtml}
+                </div>
+            `;
+            gridEl.appendChild(cell);
+        }
+
+        const totalCells = firstDayIndex + totalDays;
+        const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let i = 0; i < remainingCells; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'bg-slate-50/50 rounded-xl h-24 sm:h-28 border border-slate-100 opacity-40';
+            gridEl.appendChild(emptyCell);
+        }
+
+        let uniqueExamsMap = new Map();
+        activeExams.forEach(e => {
+            uniqueExamsMap.set(e.title + e.dateStr, e);
+        });
+
+        const uniqueExams = Array.from(uniqueExamsMap.values());
+        if (uniqueExams.length === 0) {
+            emptyEl.classList.remove('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+            uniqueExams.forEach(ex => {
+                let badgeColor = 'bg-teal-50 text-teal-700 border-teal-100';
+                if (ex.type === 'major') badgeColor = 'bg-rose-50 text-rose-700 border-rose-100 font-bold';
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="px-2 py-1 rounded-lg border ${badgeColor}">${ex.type === 'major' ? '全國大考' : '學校段考'}</span>
+                        <span class="font-bold text-slate-800">${ex.title}</span>
+                    </div>
+                    <span class="font-semibold text-teal-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200/60"><i class="fa-regular fa-calendar mr-1"></i>${ex.dateStr}</span>
+                `;
+                listEl.appendChild(row);
+            });
+        }
+    }
+</script>

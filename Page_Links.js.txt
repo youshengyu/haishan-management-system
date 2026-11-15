@@ -1,0 +1,359 @@
+<div class="max-w-[1400px] mx-auto space-y-6">
+    <!-- 頂部標題與重新整理列 -->
+    <div class="bg-white rounded-2xl p-4 sm:px-6 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shrink-0">
+                <i class="fa-solid fa-globe"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 tracking-tight">各校官方網站快速連結</h2>
+            </div>
+        </div>
+        
+        <button id="refresh-links-btn" onclick="loadSchoolLinksData(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-indigo-200/80 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-rotate"></i>
+            <span>重新同步試算表連結</span>
+        </button>
+    </div>
+
+    <!-- 篩選與搜尋工具列 -->
+    <div class="bg-white rounded-2xl px-6 py-3 shadow-sm border border-slate-200/80">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <!-- 縣市篩選 -->
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">縣市</label>
+                <select id="link-county-select" onchange="onCountyChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <option value="">全部縣市</option>
+                </select>
+            </div>
+
+            <!-- 行政區篩選 -->
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">行政區</label>
+                <select id="link-district-select" onchange="filterSchoolLinks()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <option value="">全部行政區</option>
+                </select>
+            </div>
+
+            <!-- 學制篩選 -->
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">教育學制</label>
+                <select id="link-level-select" onchange="filterSchoolLinks()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <option value="">全部學制</option>
+                    <option value="國小">國小</option>
+                    <option value="國中">國中</option>
+                    <option value="高中">高中</option>
+                    <option value="高職">高職</option>
+                </select>
+            </div>
+
+            <!-- 關鍵字搜尋與計數合併區 -->
+            <div class="sm:col-span-2">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-sm font-bold text-slate-700">關鍵字搜尋</label>
+                    <span class="text-xs text-slate-500">共找到 <strong id="link-count-span" class="text-indigo-600 font-bold">0</strong> 所學校網站</span>
+                </div>
+                <div class="flex gap-2">
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="link-search-input" oninput="filterSchoolLinks()" placeholder="輸入學校名稱或地址關鍵字..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    </div>
+                    <button onclick="resetSchoolLinksFilter()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer">
+                        重設
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 學校卡片網格區 (4欄) -->
+    <div id="school-links-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- 動態產生學校連結卡片 -->
+    </div>
+
+    <!-- 分頁導覽列 -->
+    <div id="links-pagination-container" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 hidden flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+        <div class="text-xs font-medium text-slate-500">
+            顯示第 <span id="link-page-start" class="font-bold text-slate-800">1</span> - <span id="link-page-end" class="font-bold text-slate-800">8</span> 筆，共 <span id="link-page-total" class="font-bold text-indigo-600">0</span> 所學校
+        </div>
+        <div class="flex items-center space-x-1.5" id="link-page-buttons-wrapper"></div>
+    </div>
+
+    <!-- 載入中與無資料提示 -->
+    <div id="links-loading-state" class="py-12 text-center text-slate-500 text-sm">
+        <i class="fa-solid fa-spinner fa-spin text-indigo-600 text-xl mb-2 block"></i>
+        正在讀取學校網站清單...
+    </div>
+
+    <div id="links-empty-state" class="hidden py-16 bg-white rounded-2xl border border-dashed border-slate-300 text-center">
+        <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mx-auto mb-3">
+            <i class="fa-solid fa-link-slash text-xl"></i>
+        </div>
+        <h3 class="font-bold text-slate-700 text-sm mb-1">找不到符合條件的學校網站</h3>
+        <p class="text-xs text-slate-400">請嘗試清除篩選條件或更換關鍵字</p>
+    </div>
+</div>
+
+<script>
+    let allSchoolLinks = [];
+    let currentFilteredLinks = [];
+    let currentLinkPage = 1;
+    const LINKS_PER_PAGE = 8;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadSchoolLinksData(false);
+    });
+
+    function loadSchoolLinksData(isManual) {
+        const loadingEl = document.getElementById('links-loading-state');
+        const refreshBtn = document.getElementById('refresh-links-btn');
+        
+        if (isManual && refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>同步中...</span>`;
+        }
+
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            return;
+        }
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (isManual && refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>重新同步試算表連結</span>`;
+                }
+
+                if (res && res.status === 'success') {
+                    allSchoolLinks = res.data || [];
+                    populateCountyOptions();
+                    populateDistrictOptions();
+                    filterSchoolLinks();
+                }
+            })
+            .withFailureHandler(function(err) {
+                if (loadingEl) loadingEl.innerHTML = `<span class="text-red-500">載入失敗：${err.message}</span>`;
+                if (isManual && refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>重新同步試算表連結</span>`;
+                }
+            })
+            .getSchoolLinks();
+    }
+
+    function populateCountyOptions() {
+        const countySelect = document.getElementById('link-county-select');
+        if (!countySelect) return;
+        const currentVal = countySelect.value;
+        const counties = [...new Set(allSchoolLinks.map(item => item.county))].filter(Boolean);
+        
+        countySelect.innerHTML = '<option value="">全部縣市</option>';
+        counties.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            if (c === currentVal) opt.selected = true;
+            countySelect.appendChild(opt);
+        });
+    }
+
+    function populateDistrictOptions() {
+        const countySelect = document.getElementById('link-county-select');
+        const districtSelect = document.getElementById('link-district-select');
+        if (!districtSelect) return;
+
+        const currentCounty = countySelect ? countySelect.value : '';
+        const currentDistrict = districtSelect.value;
+
+        const targetItems = currentCounty ? allSchoolLinks.filter(i => i.county === currentCounty) : allSchoolLinks;
+        const districts = [...new Set(targetItems.map(item => item.district))].filter(Boolean).sort();
+
+        districtSelect.innerHTML = '<option value="">全部行政區</option>';
+        districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            if (d === currentDistrict) opt.selected = true;
+            districtSelect.appendChild(opt);
+        });
+    }
+
+    function onCountyChange() {
+        populateDistrictOptions();
+        filterSchoolLinks();
+    }
+
+    function filterSchoolLinks() {
+        const countyVal = document.getElementById('link-county-select')?.value || '';
+        const districtVal = document.getElementById('link-district-select')?.value || '';
+        const levelVal = document.getElementById('link-level-select')?.value || '';
+        const keyword = (document.getElementById('link-search-input')?.value || '').trim().toLowerCase();
+
+        currentFilteredLinks = allSchoolLinks.filter(item => {
+            if (countyVal && item.county !== countyVal) return false;
+            if (districtVal && item.district !== districtVal) return false;
+            if (levelVal && !item.levels.includes(levelVal)) return false;
+            if (keyword) {
+                const searchStr = `${item.county} ${item.district} ${item.levels.join(' ')} ${item.name} ${item.address}`.toLowerCase();
+                if (!searchStr.includes(keyword)) return false;
+            }
+            return true;
+        });
+
+        // 依照學制排序：同時有國高中(優先) -> 國中 -> 高中 -> 高職 -> 其他
+        currentFilteredLinks.sort((a, b) => {
+            const getScore = (levels) => {
+                const hasJunior = levels.includes('國中');
+                const hasSenior = levels.includes('高中');
+                const hasVocational = levels.includes('高職');
+                if (hasJunior && hasSenior) return 1; // 國、高中皆有排最前面
+                if (hasJunior) return 2;               // 純國中
+                if (hasSenior) return 3;               // 純高中
+                if (hasVocational) return 4;           // 高職
+                return 5;                              // 其他
+            };
+            return getScore(a.levels) - getScore(b.levels);
+        });
+
+        currentLinkPage = 1;
+        renderSchoolLinksPage();
+    }
+
+    function renderSchoolLinksPage() {
+        const grid = document.getElementById('school-links-grid');
+        const emptyEl = document.getElementById('links-empty-state');
+        const countSpan = document.getElementById('link-count-span');
+        const paginationContainer = document.getElementById('links-pagination-container');
+
+        if (countSpan) countSpan.textContent = currentFilteredLinks.length;
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        if (currentFilteredLinks.length === 0) {
+            emptyEl?.classList.remove('hidden');
+            paginationContainer?.classList.add('hidden');
+            return;
+        }
+        emptyEl?.classList.add('hidden');
+        paginationContainer?.classList.remove('hidden');
+
+        const totalItems = currentFilteredLinks.length;
+        const totalPages = Math.ceil(totalItems / LINKS_PER_PAGE);
+        if (currentLinkPage > totalPages) currentLinkPage = totalPages || 1;
+
+        const startIndex = (currentLinkPage - 1) * LINKS_PER_PAGE;
+        const endIndex = Math.min(currentLinkPage * LINKS_PER_PAGE, totalItems);
+        const pageItems = currentFilteredLinks.slice(startIndex, endIndex);
+
+        document.getElementById('link-page-start').textContent = totalItems > 0 ? startIndex + 1 : 0;
+        document.getElementById('link-page-end').textContent = endIndex;
+        document.getElementById('link-page-total').textContent = totalItems;
+
+        pageItems.forEach(item => {
+            let levelBadgesHtml = '';
+            item.levels.forEach(lvl => {
+                let badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+                if (lvl === '高中') badgeClass = 'bg-purple-50 text-purple-700 border-purple-100';
+                else if (lvl === '高職') badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                else if (lvl === '國小') badgeClass = 'bg-amber-50 text-amber-700 border-amber-100';
+                levelBadgesHtml += `<span class="px-2 py-0.5 rounded text-[11px] font-bold border ${badgeClass}">${lvl}</span>`;
+            });
+
+            const card = document.createElement('a');
+            card.href = item.url;
+            card.target = '_blank';
+            card.rel = 'noopener noreferrer';
+            card.className = 'group bg-white rounded-2xl py-3 px-4 shadow-sm border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between no-underline overflow-hidden';
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                        <div class="flex items-center gap-1 flex-wrap">
+                            ${levelBadgesHtml}
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-medium">${item.district || item.county}</span>
+                        </div>
+                        <div class="w-6 h-6 rounded-full bg-slate-50 group-hover:bg-indigo-600 text-slate-400 group-hover:text-white flex items-center justify-center transition-colors shrink-0">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors mb-1 truncate">
+                        ${item.name}
+                    </h3>
+                    ${item.address ? `<p class="text-[11px] text-slate-500 flex items-center gap-1.5 whitespace-nowrap overflow-hidden"><i class="fa-solid fa-location-dot text-slate-400 text-[10px] shrink-0"></i><span class="truncate">${item.address}</span></p>` : ''}
+                </div>
+                <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 group-hover:text-indigo-500 transition-colors">
+                    <span class="truncate max-w-[130px]">${item.url.replace(/^https?:\/\//, '')}</span>
+                    <span class="font-semibold shrink-0">前往網站 &rarr;</span>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        renderLinksPaginationControls(totalPages);
+    }
+
+    function renderLinksPaginationControls(totalPages) {
+        const wrapper = document.getElementById('link-page-buttons-wrapper');
+        if (!wrapper) return;
+        wrapper.innerHTML = '';
+
+        if (totalPages <= 1) {
+            document.getElementById('links-pagination-container').classList.add('hidden');
+            return;
+        }
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = `px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 shrink-0 cursor-pointer ${currentLinkPage === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100 hover:text-indigo-600'}`;
+        prevBtn.innerHTML = `<i class="fa-solid fa-chevron-left text-[10px]"></i> 上一頁`;
+        prevBtn.disabled = currentLinkPage === 1;
+        prevBtn.onclick = () => {
+            if (currentLinkPage > 1) {
+                currentLinkPage--;
+                renderSchoolLinksPage();
+                document.querySelector('.app-main').scrollTop = 0;
+            }
+        };
+        wrapper.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const numBtn = document.createElement('button');
+            const isActive = i === currentLinkPage;
+            numBtn.className = `w-8 h-8 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-indigo-600'}`;
+            numBtn.textContent = i;
+            numBtn.onclick = () => {
+                currentLinkPage = i;
+                renderSchoolLinksPage();
+                document.querySelector('.app-main').scrollTop = 0;
+            };
+            wrapper.appendChild(numBtn);
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = `px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 shrink-0 cursor-pointer ${currentLinkPage === totalPages ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100 hover:text-indigo-600'}`;
+        nextBtn.innerHTML = `下一頁 <i class="fa-solid fa-chevron-right text-[10px]"></i>`;
+        nextBtn.disabled = currentLinkPage === totalPages;
+        nextBtn.onclick = () => {
+            if (currentLinkPage < totalPages) {
+                currentLinkPage++;
+                renderSchoolLinksPage();
+                document.querySelector('.app-main').scrollTop = 0;
+            }
+        };
+        wrapper.appendChild(nextBtn);
+    }
+
+    function resetSchoolLinksFilter() {
+        const countySelect = document.getElementById('link-county-select');
+        const districtSelect = document.getElementById('link-district-select');
+        const levelSelect = document.getElementById('link-level-select');
+        const searchInput = document.getElementById('link-search-input');
+        if (countySelect) countySelect.value = '';
+        if (districtSelect) districtSelect.value = '';
+        if (levelSelect) levelSelect.value = '';
+        if (searchInput) searchInput.value = '';
+        populateDistrictOptions();
+        filterSchoolLinks();
+    }
+</script>
