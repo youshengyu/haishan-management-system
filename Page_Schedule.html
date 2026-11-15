@@ -118,18 +118,15 @@
     });
 
     function loadExamData(isManual) {
-        if (typeof google === 'undefined' || !google.script || !google.script.run) return;
-
-        google.script.run
-            .withSuccessHandler(function(res) {
-                if (res && res.status === 'success') {
-                    rawSchoolExams = res.data.schoolExams || [];
-                    rawMajorExams = res.data.majorExams || [];
-                    populateSchoolOptions();
-                    renderCalendar();
-                }
-            })
-            .getExamSchedules();
+        renderCalendar(); // 先繪製基礎月曆骨架
+        callGasGet('getExamSchedules').then(function(res) {
+            if (res && res.status === 'success' && res.data) {
+                rawSchoolExams = res.data.schoolExams || [];
+                rawMajorExams = res.data.majorExams || [];
+                populateSchoolOptions();
+                renderCalendar();
+            }
+        });
     }
 
     function populateSchoolOptions() {
