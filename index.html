@@ -6,13 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>海山教室全方位管理系統</title>
   
-  <!-- 引入共用樣式與套件 -->
+  <!-- 引入 Font Awesome 圖示 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- 引入 Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { corePlugins: { preflight: false } }
   </script>
+  <!-- 引入您的 api.js -->
   <script src="api.js"></script>
 
   <style>
@@ -28,20 +31,21 @@
       color: #f8fafc; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
       z-index: 9999; height: 100%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden;
     }
-    .sidebar-header { padding: 20px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); white-space: nowrap; }
+    .app-sidebar.collapsed { width: 72px; min-width: 72px; }
+    .sidebar-header { padding: 20px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); position: relative; white-space: nowrap; }
     .logo-icon { width: 36px; height: 36px; background: #4f46e5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; flex-shrink: 0; }
     .brand-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
     .brand-sub { font-size: 11px; color: #94a3b8; }
     .nav-menu { padding: 16px 12px; flex-grow: 1; display: flex; flex-direction: column; gap: 6px; }
+    .nav-label { font-size: 11px; font-weight: 600; color: #64748b; padding: 0 12px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .nav-item {
       display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px;
       color: #cbd5e1; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left;
+      transition: all 0.2s ease;
     }
     .nav-item:hover { background-color: rgba(255, 255, 255, 0.08); color: #ffffff; }
     .nav-item.active { background-color: #4f46e5; color: #ffffff; font-weight: 600; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); }
     .app-main { flex-grow: 1; height: 100%; overflow-y: auto; position: relative; background-color: #f8f9fa; }
-    .system-section { display: none; width: 100%; min-height: 100%; }
-    .system-section.active { display: block; }
   </style>
 </head>
 <body>
@@ -57,7 +61,7 @@
       </div>
 
       <nav class="nav-menu">
-        <div class="nav-label text-xs text-slate-500 px-2 mb-1">系統功能選單</div>
+        <div class="nav-label">系統功能選單</div>
         <button class="nav-item active" onclick="switchTab('Records', this)"><i class="fa-solid fa-clipboard-list"></i><span>日常事蹟紀錄表</span></button>
         <button class="nav-item" onclick="switchTab('Textbooks', this)"><i class="fa-solid fa-book-open"></i><span>教科書版本查詢</span></button>
         <button class="nav-item" onclick="switchTab('Exams', this)"><i class="fa-solid fa-file-pdf"></i><span>歷屆段考資源網</span></button>
@@ -68,9 +72,8 @@
       <div class="sidebar-footer p-3 text-xs text-slate-500">補習班專屬系統 v2.0</div>
     </aside>
 
-    <main class="app-main">
-      <div id="content-container" class="w-full min-h-full p-4">
-        <!-- 動態載入的分頁內容會放這裡 -->
+    <main class="app-main" id="appMainContainer">
+      <div id="content-container" class="w-full min-h-full">
         <div class="text-center py-12 text-slate-500">載入中...</div>
       </div>
     </main>
@@ -78,7 +81,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // 預設先載入日常事蹟紀錄表
     window.addEventListener('DOMContentLoaded', () => {
       loadPage('Records');
     });
@@ -91,30 +93,44 @@
 
     async function loadPage(tabName) {
       const container = document.getElementById('content-container');
+      // 保留各頁原本的內距設定
+      if (tabName === 'Exams') {
+        container.className = 'w-full min-h-full';
+      } else {
+        container.className = 'w-full min-h-full p-4';
+      }
+
       container.innerHTML = '<div class="text-center py-12 text-slate-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i>載入分頁中...</div>';
       
       try {
         let fileName = `Page_${tabName}.html`;
         let response = await fetch(fileName);
-        if (!response.ok) throw new Error('找不到分頁檔案');
+        if (!response.ok) throw new Error(`找不到分頁檔案 (${fileName})`);
         let htmlContent = await response.text();
         
         container.innerHTML = htmlContent;
         
-        // 如果 HTML 檔裡面包含 <script> 標籤，手動讓它重新執行以確保功能正常
+        // 移除先前動態插入的 script 避免重複宣告錯誤
+        document.querySelectorAll('script[data-dynamic-page="true"]').forEach(s => s.remove());
+
+        // 執行新分頁的 <script> 標籤
         const scripts = container.querySelectorAll('script');
         scripts.forEach(script => {
           const newScript = document.createElement('script');
+          newScript.setAttribute('data-dynamic-page', 'true');
           if (script.src) {
             newScript.src = script.src;
           } else {
-            newScript.textContent = script.textContent;
+            // 將子頁面內的 DOMContentLoaded 監聽器自動轉換為立即執行，確保動態載入時正常初始化
+            let code = script.textContent.replace(/window\.addEventListener\s*\(\s*['"]DOMContentLoaded['"]\s*,/g, '(function(fn){ fn(); })(');
+            code = code.replace(/document\.addEventListener\s*\(\s*['"]DOMContentLoaded['"]\s*,/g, '(function(fn){ fn(); })(');
+            newScript.textContent = code;
           }
           document.body.appendChild(newScript);
           script.remove();
         });
 
-        document.querySelector('.app-main').scrollTop = 0;
+        document.getElementById('appMainContainer').scrollTop = 0;
       } catch (err) {
         container.innerHTML = `<div class="p-6 text-red-500 text-center">無法載入 ${tabName} 分頁：${err.message}</div>`;
       }
