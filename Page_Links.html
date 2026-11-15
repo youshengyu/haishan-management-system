@@ -113,34 +113,23 @@
             refreshBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>同步中...</span>`;
         }
 
-        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        callGasGet('getSchoolLinks').then(function(res) {
             if (loadingEl) loadingEl.style.display = 'none';
-            return;
-        }
+            if (isManual && refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>重新同步試算表連結</span>`;
+            }
 
-        google.script.run
-            .withSuccessHandler(function(res) {
-                if (loadingEl) loadingEl.style.display = 'none';
-                if (isManual && refreshBtn) {
-                    refreshBtn.disabled = false;
-                    refreshBtn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>重新同步試算表連結</span>`;
-                }
-
-                if (res && res.status === 'success') {
-                    allSchoolLinks = res.data || [];
-                    populateCountyOptions();
-                    populateDistrictOptions();
-                    filterSchoolLinks();
-                }
-            })
-            .withFailureHandler(function(err) {
-                if (loadingEl) loadingEl.innerHTML = `<span class="text-red-500">載入失敗：${err.message}</span>`;
-                if (isManual && refreshBtn) {
-                    refreshBtn.disabled = false;
-                    refreshBtn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>重新同步試算表連結</span>`;
-                }
-            })
-            .getSchoolLinks();
+            if (res && res.status === 'success') {
+                allSchoolLinks = res.data || [];
+                populateCountyOptions();
+                populateDistrictOptions();
+                filterSchoolLinks();
+            } else if (loadingEl) {
+                loadingEl.style.display = 'block';
+                loadingEl.innerHTML = `<span class="text-red-500">載入失敗：${res ? res.message : '無法連線至 GAS'}</span>`;
+            }
+        });
     }
 
     function populateCountyOptions() {
